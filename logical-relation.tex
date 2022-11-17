@@ -1,0 +1,255 @@
+% !TEX TS-program = pdflatexmk
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\usepackage{mathpartir}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{stmaryrd}
+\usepackage{amsthm}
+\usepackage{enumitem}
+\usepackage{mathtools}
+\usepackage[letterpaper, margin=1cm, bottom=1in]{geometry}
+\usepackage{xparse}
+\usepackage{pl-syntax/pl-syntax}
+\usepackage{fontawesome}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+
+\NewDocumentCommand{\TUnit}{}{\mathrm{Unit}}
+\NewDocumentCommand{\Abs}{m m}{\lambda\mkern1mu#1.\mkern2mu#2}
+\NewDocumentCommand{\App}{m m}{#1\mkern4mu#2}
+\NewDocumentCommand{\BetaRed}{m m}{#1\to_{\beta}#2}
+\NewDocumentCommand{\BetaRedM}{m m}{#1\to_{\beta}^{*}#2}
+\NewDocumentCommand{\BetaEquiv}{m m}{#1\equiv_{\beta}#2}
+\NewDocumentCommand{\Subst}{m m m}{#1\mkern1mu[#2 \mapsto #3]}
+\NewDocumentCommand{\Denote}{m}{\llbracket#1\rrbracket}
+\NewDocumentCommand{\LRN}{m}{\mathcal{N}\llbracket#1\rrbracket}
+\NewDocumentCommand{\LRC}{m}{\mathcal{C}\llbracket#1\rrbracket}
+\NewDocumentCommand{\iffdef}{}{\overset{\Delta}{\iff}}
+\NewDocumentCommand{\Normalizes}{m}{#1\Downarrow}
+\NewDocumentCommand{\Forall}{m m}{\forall\mkern1mu#1.\mkern2mu#2}
+\NewDocumentCommand{\Dom}{}{\mathrm{dom}}
+
+\begin{document}
+\begin{center}
+  \textbf{\huge{Logical Relation}}
+\end{center}
+
+\section*{Language}
+\begin{syntax}
+  \category[Types]{\tau} \alternative{1} \alternative{\tau_{1} \to \tau_{2}}
+  \category[Expressions]{e} \alternative{()} \alternative{x} \alternative{\Abs{x}{e}} \alternative{\App{e_{1}}{e_{2}}}
+\end{syntax}
+
+\section*{Typing Context}
+\begin{syntax}
+  \category[Contexts]{\Gamma} \alternative{\bullet} \alternative{\Gamma, x : \tau} \note{$x$ fresh}
+\end{syntax}
+
+\section*{Typing Rules}
+\begin{mathpar}
+  \inferrule*[left=Axiom]{x : \tau \in \Gamma}{\Gamma \vdash x : \tau} \and
+  \inferrule*[left=Unit]{ }{\Gamma \vdash () : 1} \and
+  \inferrule*[left=$\lambda$I]{\Gamma, x : \tau_{1} \vdash e : \tau_{2}}{\Gamma \vdash \Abs{x}{e} : \tau_{1} \to \tau_{2}} \and
+  \inferrule*[left=$\lambda$E]{%
+    \Gamma \vdash e_{1} : \tau_{1} \to \tau_{2}\\
+    \Gamma \vdash e_{2} : \tau_{1}
+  }{%
+    \Gamma \vdash \App{e_{1}}{e_{2}} : \tau_{2}
+  }
+\end{mathpar}
+
+\section*{Operational Semantics}
+\begin{mathpar}
+  \inferrule*{ }{\BetaRed{\App{(\Abs{x}{e})}{e'}}{\Subst{e}{x}{e'}}} \and
+  \inferrule*{\BetaRed{e}{e'}}{\BetaRed{\Abs{x}{e}}{\Abs{x}{e'}}} \and
+  \inferrule*{\BetaRed{e_{1}}{e_{1}'}}{\BetaRed{\App{e_{1}}{e_{2}}}{\App{e_{1}'}{e_{2}}}} \and
+  \inferrule*{\BetaRed{e_{2}}{e_{2}'}}{\BetaRed{\App{e_{1}}{e_{2}}}{\App{e_{1}}{e_{2}'}}}
+\end{mathpar}
+
+\section*{Normalization}
+\begin{definition}
+  An expression is in \emph{normal form} if none of the reduction rules applies.
+\end{definition}
+
+\begin{definition}
+  An expression $e$ is \emph{strongly normalizing} if and only if there is a natural number $\nu(e)$ such that the length of every valid $\beta$-\emph{reduction path} is at most $\nu(e)$.
+  A $\beta$-reduction path (henceforth, reduction path) is a sequence of $\beta$-reductions.
+\end{definition}
+
+\section*{Logical Relation}
+\[
+  \begin{array}{l@{\,\iffdef\,}l}
+    e \in \LRN{1} & \Normalizes{e}\\
+    e \in \LRN{\tau_{1} \to \tau_{2}} & \Forall{e' \in \LRN{\tau_{1}}}{\App{e}{e'} \in \LRN{\tau_{2}}}
+  \end{array}
+\]
+
+\begin{lemma}
+  The following three statements hold:
+  \begin{enumerate}
+  \item If $e \in \LRN{\tau}$, then $\Normalizes{e}$.
+  \item If $e \in \LRN{\tau}$ and $\BetaRed{e}{e'}$, then $e' \in \LRN{\tau}$.
+  \item If the following two conditions hold
+    \begin{itemize}
+    \item $e$ is not a lambda abstraction; and
+    \item if for all $e'$, $\BetaRed{e}{e'}$, then $e' \in \LRN{\tau}$
+    \end{itemize}
+    then $e \in \LRN{\tau}$.
+  \end{enumerate}
+\end{lemma}
+\begin{proof}
+  We proceed by induction on $\tau$.
+
+  \textbf{Case ($\tau = 1$):}
+  \begin{enumerate}
+  \item This follows by definition.
+  \item Since $e$ is strongly normalizing, all of its one-step $\beta$-reductions must be strongly normalizing.
+    Hence, $e' \in \LRN{1}$.
+  \item Since any one-step reduction of $e$ results in a strongly normalizing expression, $e$ is strongly normalizing.
+  \end{enumerate}
+
+  \textbf{Case ($\tau = \tau_{1} \to \tau_{2}$):}
+  \begin{enumerate}
+  \item Since $x$ is not a lambda abstraction and in normal form, by IH3 on $\tau_{1}$, $x \in \LRN{\tau_{1}}$.
+    By definition, $(\App{e}{x}) \in \LRN{\tau_{2}}$.
+    Applying IH1 on $\tau_{2}$ reveals that $(\App{e}{x})$ is strongly normalizing.
+    Since any reduction path of $e$ is also a reduction path of $(\App{e}{x})$, $\nu(e) \leq \nu(\App{e}{x})$.
+    Hence, $e$ is strongly normalizing.
+  \item Let any $e_{1} \in \LRN{\tau_{1}}$ be given.
+    By definition, $(\App{e}{e_{1}}) \in \LRN{\tau_{2}}$.
+    Since $\BetaRed{e}{e'}$, $\BetaRed{(\App{e}{e_{1}})}{(\App{e'}{e_{1}})}$.
+    By IH2 on $\tau_{2}$, $(\App{e'}{e_{1}}) \in \LRN{\tau_{2}}$.
+    Hence, $e' \in \LRN{\tau_{1} \to \tau_{2}}$.
+  \item This one is mind-bendy.
+    We get to assume that $e$ is not a lambda abstraction and every one-step reduction of $e$ is in $\LRN{\tau_{1} \to \tau_{2}}$.
+    And our goal is to show that $e \in \LRN{\tau_{1} \to \tau_{2}}$, or equivalently, for all $e_{1} \in \LRN{\tau_{1}}$, $(\App{e}{e_{1}}) \in \LRN{\tau_{2}}$.
+    Doing it directly does not seem to work.
+    The key insight is that $(\App{e}{e_{1}})$ is not a lambda abstraction.
+    So if we can show that every one-step reduction of $(\App{e}{e_{1}})$ is in $\LRN{\tau_{2}}$, then applying IH3 on $\tau_{2}$ gives us what we want.
+
+    By IH1 on $\tau_{1}$, $e_{1}$ is strongly normalizing.
+    Hence, $\nu(e_{1})$ exists.
+    We proceed by strong induction on $\nu(e_{1})$.
+    
+    Note that since $e$ is not a lambda abstraction, any one-step reduction of $(\App{e}{e_{1}})$ must take place in either $e$ or $e_{1}$.
+    In the former case, let $e'$ be any one-step reduction of $e$.
+    By assumption, $e' \in \LRN{\tau_{1} \to \tau_{2}}$.
+    Hence, $(\App{e'}{e_{1}}) \in \LRN{\tau_{2}}$ by definition.
+    In the latter case, let $e_{1}'$ be any one-step reduction of $e_{1}$.
+    Since $\nu(e_{1}') < \nu(e_{1})$, $(\App{e}{e_{1}'}) \in \LRN{\tau_{2}}$ by the strong inductive hypothesis.
+
+    Since any one-step reduction of $(\App{e}{e_{1}})$ is in $\LRN{\tau_{2}}$, applying IH3 on $\tau_{2}$ gives us that $(\App{e}{e_{1}}) \in \LRN{\tau_{2}}$.
+  \end{enumerate}
+\end{proof}
+
+\begin{corollary}\label{cor:something}
+  For any $e_{1} \in \LRN{\tau_{1}}$, if $\Subst{e}{x}{e_{1}} \in \LRN{\tau_{2}}$, then $\App{(\Abs{x}{e})}{e_{1}} \in \LRN{\tau_{2}}$.
+\end{corollary}
+\begin{proof}
+  Similar to the previous proof, we show that every one-step reduction of $\App{(\Abs{x}{e})}{e_{1}}$ is in $\LRN{\tau_{2}}$, and then apply IH3 to get what we want.
+  
+  Since both $e'$ and $\Subst{e}{x}{e'}$ are strongly normalizing by IH1, it follows that $e$ is strongly normalizing.
+  We define a measure on $\beta$-redices $\App{(\Abs{x}{e})}{e_{1}}$ by $\mu(\App{(\Abs{x}{e})}{e_{1}}) = \nu(e) + \nu(e_{1})$.
+  
+  We proceed by strong induction on $\mu(\App{(\Abs{x}{e})}{e_{1}})$.
+  There are three cases,
+  \begin{enumerate}
+  \item If $\App{(\Abs{x}{e})}{e_{1}}$ steps into $\Subst{e}{x}{e_{1}}$, then $\Subst{e}{x}{e_{1}} \in \LRN{\tau_{2}}$ by assumption.
+  \item If $\App{(\Abs{x}{e})}{e_{1}}$ steps into $\App{(\Abs{x}{e'})}{e_{1}}$, then $\nu(e') < \nu(e)$ so $\mu(\App{(\Abs{x}{e'})}{e_{1}}) < \mu(\App{(\Abs{x}{e})}{e_{1}})$.
+    By the strong inductive hypothesis, $\App{(\Abs{x}{e'})}{e_{1}} \in \LRN{\tau_{2}}$.
+  \item If $\App{(\Abs{x}{e})}{e_{1}}$ steps into $\App{(\Abs{x}{e})}{e_{1}'}$, then $\nu(e_{1}') < \nu(e_{1})$ so $\mu(\App{(\Abs{x}{e})}{e_{1}'}) < \mu(\App{(\Abs{x}{e})}{e_{1}})$.
+    By the strong inductive hypothesis, $\App{(\Abs{x}{e})}{e_{1}'} \in \LRN{\tau_{2}}$.
+  \end{enumerate}
+\end{proof}
+
+\section*{Sequential Substitution}
+
+At this point, we're still not able to prove the strong normalization property of STLC because we are not able to take are of substitutions.
+
+\begin{syntax}
+  \category[Sequential Substitution]{\gamma} \alternative{\bullet} \alternative{\gamma, x \mapsto e}
+\end{syntax}
+
+\[
+  \begin{array}{l@{\,=\,}l}
+    e[\bullet] & e\\
+    e[\gamma, x \mapsto e'] & \Subst{(e[\gamma])}{x}{e'}
+  \end{array}
+\]
+
+Domain
+\[
+  \begin{array}{l@{\,=\,}l}
+    \Dom(\bullet) & \emptyset\\
+    \Dom(\gamma, x \mapsto e') & \Dom(\gamma) \cup \{x\}
+  \end{array}
+\]
+
+We define
+\[
+  \begin{array}{l@{\,=\,}l}
+    \bullet(x) & \uparrow\\
+    (\gamma, y \mapsto e)(x) & \gamma(x)\\
+    (\gamma, x \mapsto e)(x) & e
+  \end{array}
+\]
+Clearly, $\gamma(x)$ is total if $x \in \Dom(\gamma)$.
+
+We introduce the following relation.
+\[
+  \gamma \in \LRC{\Gamma} \iffdef \Dom(\Gamma) = \Dom(\gamma) \land \Forall{x : \tau \in \Gamma}{\gamma(x) \in \LRN{\tau}}
+\]
+
+\begin{definition}[Semantic Typing]
+  $\Gamma \vDash e : \tau \iffdef \Forall{\gamma \in \LRC{\Gamma}}{e[\gamma] \in \LRN{\tau}}$.
+\end{definition}
+
+\begin{theorem}[Fundamental Theorem]
+  If $\Gamma \vdash e : \tau$, then $\Gamma \vDash e : \tau$.
+\end{theorem}
+\begin{proof}
+  We proceed by induction on the typing derivation of $\Gamma \vdash e : \tau$.
+  
+  \textsc{Axiom}:
+  In this case, $x \in \Dom(\Gamma)$.
+  Hence, for any $\gamma \in \LRC{\Gamma}$, $x \in \Dom(\gamma)$ and $x[\gamma] = \gamma(x) \in \LRN{\tau}$ so we're done.\\
+
+  \textsc{Unit}:
+  For any $\gamma \in \LRC{\Gamma}$, since $()$ is closed, $()[\gamma] = ()$.
+  And since $()$ is in normal form, it's strongly normalizing.
+  Hence, $() \in \LRN{1}$.\\
+
+  \textsc{$\lambda$E}:
+  The inductive hypothesis tells us that $\Gamma \vDash e_{1} : \tau_{1} \to \tau_{2}$ and that $\Gamma \vDash e_{2} : \tau_{2}$.
+  Let $\gamma \in \LRC{\Gamma}$.
+  Since $e_{2}[\gamma] \in \LRN{\tau_{1}}$, $(\App{e_{1}}{e_{2}})[\gamma] \in \LRN{\tau_{2}}$ follows from the fact that $e_{1}[\gamma] \in \LRN{\tau_{1} \to \tau_{2}}$.\\
+
+  \textsc{$\lambda$I}:
+  The inductive hypothesis tells us that $\Gamma, x : \tau_{1} \vDash e : \tau_{2}$.
+  Let $\gamma \in \LRC{\Gamma}$ and $e' \in \LRN{\tau_{1}}$.
+  Then, $(\gamma, x \mapsto e') \in \LRC{\Gamma, x : \tau_{1}}$.
+  Hence, $\App{((\Abs{x}{e})[\gamma])}{e'} = \BetaRed{(\App{\Abs{x}{(e[\gamma])})}{e'}}{\Subst{e[\gamma]}{x}{e'} = e[\gamma, x \mapsto e']} \in \LRN{\tau_{2}}$.
+  By Corollary \ref{cor:something}, $\App{((\Abs{x}{e})[\gamma])}{e'} \in \LRN{\tau_{2}}$.
+\end{proof}
+
+The Fundamental Theorem tells us that every well-typed expression is semantically well-typed.
+The final step is to show that the identity substitution $\mathsf{id}$ is in $\LRC{\Gamma}$.
+We leave this as an exercise for the reader (because I'm lazy).
+With the identity substitution, we have $e[\mathsf{id}] = e \in \LRN{\tau}$, and every expression in $\LRN{\tau}$ is strongly normalizing.
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
